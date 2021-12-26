@@ -4,6 +4,7 @@ class Todo {
   String desc;
   bool completed;
   int time;
+  int compTime;
 
   // Constructor with named parameter
   // provide time in DateTime.now().millisecondsSinceEpoch
@@ -12,7 +13,8 @@ class Todo {
       required this.title,
       required this.desc,
       this.completed = false,
-      required this.time});
+      required this.time,
+      this.compTime = -1});
 
   // Function to Convert this object to map
   Map<String, dynamic> toMap() {
@@ -22,18 +24,35 @@ class Todo {
     } else {
       cmp = 0;
     }
-    return {'_title': title, '_desc': desc, '_completed': cmp, '_time': time};
+    return {
+      '_title': title,
+      '_desc': desc,
+      '_completed': cmp,
+      '_time': time,
+      '_comp_time': compTime
+    };
+  }
+
+  // For sqlite3 INSERT Statement
+  String toValues() {
+    return "($id, $title, $desc, ${completed ? 1 : 0}, $time, $compTime)";
   }
 
   // Function to copy
   Todo copy(
-      {int? id, String? title, String? desc, bool? completed, int? time}) {
+      {int? id,
+      String? title,
+      String? desc,
+      bool? completed,
+      int? time,
+      int? compTime}) {
     return Todo(
         id: id ?? this.id,
         title: title ?? this.title,
         desc: desc ?? this.desc,
         completed: completed ?? this.completed,
-        time: time ?? this.time);
+        time: time ?? this.time,
+        compTime: compTime ?? this.compTime);
   }
 
   // _todo from map
@@ -51,6 +70,7 @@ class Todo {
       desc: map["_desc"],
       completed: completed,
       time: map["_time"],
+      compTime: map["_comp_time"],
     );
   }
 
@@ -62,6 +82,6 @@ class Todo {
   // Overriding toString method
   @override
   String toString() {
-    return 'Todo(id: $id, title: $title, desc: $desc, completed: $completed, date: ${DateTime.fromMillisecondsSinceEpoch(time)})';
+    return 'Todo(id: $id, title: $title, desc: $desc, completed: $completed, date: ${DateTime.fromMillisecondsSinceEpoch(time)}, completed_date: date: ${DateTime.fromMillisecondsSinceEpoch(compTime)})';
   }
 }

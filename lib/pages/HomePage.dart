@@ -1,71 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:todo_app_flutter/sqlitedb/todo.dart';
 import 'package:todo_app_flutter/sqlitedb/todo_database.dart';
+import 'package:todo_app_flutter/widgets/TodoView.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({Key? key}) : super(key: key);
+  final TodoDatabase? todoDatabase;
+  const HomePage({Key? key, required this.todoDatabase}) : super(key: key);
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  TodoDatabase? _todoDatabase;
 
+class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
-    // Calling function to initialize database
-    _initializeDatabase();
+
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Your Todos"),
       ),
-      body: _todoDatabase != null
+      body: widget.todoDatabase != null
           ? FutureBuilder(
-        future: _todoDatabase?.allTodos(),
+        future: widget.todoDatabase?.todos(),
         builder:
             (BuildContext context, AsyncSnapshot<List<Todo>> snapshot) {
           if (snapshot.hasData) {
             return ListView.builder(
               itemCount: snapshot.requireData.length,
               itemBuilder: (BuildContext context, int index) {
-                return ListTile(
-                  title: Text(snapshot.requireData[index].title),
-                  subtitle: Text(snapshot.requireData[index].desc),
-                );
+                return TodoView(todo: snapshot.requireData[snapshot.requireData.length - index - 1], todoDatabase: widget.todoDatabase);
               },
             );
           } else {
             return const Center(
-              child: Text("No data"),
+              child: Text("No Todos"),
             );
           }
         },
       )
           : const Center(
-        child: Text("Please wait.."),
+        child: CircularProgressIndicator(),
       ),
-      floatingActionButton: _todoDatabase != null
+      floatingActionButton: widget.todoDatabase != null
           ? FloatingActionButton(
         onPressed: () {
-          _todoDatabase?.insert(Todo(
-              title: "title from fab", desc: "desc from fab", time: DateTime
-              .now()
-              .millisecondsSinceEpoch));
+          Navigator.pushNamed(context, "/newtodo");
         },
         child: const Icon(Icons.add),
       )
           : null,
     );
-  }
-
-  // Function to handle database initialization
-  void _initializeDatabase() {
-    TodoDatabase.initialize().then((value) {
-      setState(() {
-        _todoDatabase = value;
-      });
-    });
   }
 }

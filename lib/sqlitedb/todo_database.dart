@@ -1,77 +1,72 @@
 import 'dart:async';
-import 'package:path/path.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:todo_app_flutter/sqlitedb/todo.dart';
+import 'dart:io';
+import 'todo.dart';
+import 'todo_database_sqflite.dart';
+import 'todo_database_sqlite3.dart';
 
 class TodoDatabase {
-  // Private const variables that can't be reassigned
-  static const String _dbName = "todos_db.db";
-  static const String _tableName = "todos";
-  static const int _version = 1;
-  static TodoDatabase? _todoDatabase;
-  Database? _database;
-
+  // Nullable Variable
+  TodoDatabaseSqflite? _databaseSqflite;
+  TodoDatabaseSqlite3? _databaseSqlite3;
 
   // Private Constructor
   TodoDatabase._();
 
-
   static Future<TodoDatabase> initialize() async {
-    TodoDatabase todoDatabase = TodoDatabase._()
-      .._database = await _createDatabase();
+    TodoDatabase todoDatabase = TodoDatabase._();
+    if (Platform.isAndroid || Platform.isIOS) {
+      todoDatabase._databaseSqflite = await TodoDatabaseSqflite.initialize();
+    } else if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+      todoDatabase._databaseSqlite3 = TodoDatabaseSqlite3.initialize();
+    }
     return todoDatabase;
   }
 
-
-  // Private static function to create and return the instance of sql database
-  static Future<Database> _createDatabase() async {
-    return await openDatabase(join(await getDatabasesPath(), _dbName),
-        version: _version, onCreate: (Database db, int version) async {
-          await db.execute(
-              'CREATE TABLE todos (_id INTEGER PRIMARY KEY AUTOINCREMENT, _title TEXT, _desc TEXT, _completed INTEGER, _time INTEGER)');
-        });
-  }
-
-  // Function to get all todos
-  Future<List<Todo>> allTodos() async {
-    List<Map<String, dynamic>>? maps = await _database?.query(_tableName);
-    return maps != null && maps.isNotEmpty ? Todo.fromMaps(maps) : List.empty();
-  }
-
   // Function to get completed todos
-  Future<List<Todo>> completedTodos() async {
-    List<Map<String, dynamic>>? maps = await _database?.query(_tableName,
-        columns: ['_id', '_title', '_desc', '_completed', '_time'],
-        where: '_completed = ?',
-        whereArgs: [1]); // 0 -> false, 1 -> true
-
-    return maps != null && maps.isNotEmpty ? Todo.fromMaps(maps) : List.empty();
+  Future<List<Todo>> todos({bool? completed}) async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      return await _databaseSqflite?.todos(completed: completed) ??
+          List.empty();
+    } else if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+      return await _databaseSqlite3?.todos(completed: completed) ??
+          List.empty();
+    }
+    return List.empty();
   }
 
   // Function to insert _todo
-  Future<bool> insert(Todo todo) async {
-    int? res = await _database?.insert(
-      _tableName,
-      todo.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-
-    return res != null;
+  Future<void> insert(Todo todo) async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _databaseSqflite?.insert(todo);
+    } else if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+      await _databaseSqlite3?.insert(todo);
+    }
   }
 
   // Function to delete given _todo
-  Future<bool> delete(Todo todo) async {
-    int? res = await _database
-        ?.delete(_tableName, where: '_id = ?', whereArgs: [todo.id]);
-    return res != null;
+  Future<void> delete(Todo todo) async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _databaseSqflite?.delete(todo);
+    } else if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+      await _databaseSqlite3?.delete(todo);
+    }
   }
 
   // Function to update _todo
-  Future<bool> update(Todo todo) async {
-    int? res = await _database?.update(_tableName, todo.toMap(),
-        where: '_id = ?',
-        whereArgs: [todo.id],
-        conflictAlgorithm: ConflictAlgorithm.replace);
-    return res != null;
+  Future<void> update(Todo todo) async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _databaseSqflite?.update(todo);
+    } else if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+      await _databaseSqlite3?.update(todo);
+    }
+  }
+
+  // Function to close the database
+  Future<void> close() async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      await _databaseSqflite?.close();
+    } else if (Platform.isLinux || Platform.isMacOS || Platform.isWindows) {
+      await _databaseSqlite3?.close();
+    }
   }
 }
